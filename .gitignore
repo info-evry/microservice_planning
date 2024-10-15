@@ -1,0 +1,15 @@
+/node_modules/*
+.vscode
+dist/*
+**/*.sqlite
+**/log/*
+!src/model/log/*
+package-lock.json
+src/config/dev.json
+src/config/prod.json
+src/config/jwt.json
+src/config/*.key
+src/config/*.key.pub
+.env
+*tmp
+tmp*

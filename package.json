@@ -1,0 +1,48 @@
+{
+    "name": "app-asso",
+    "version": "1.0.0",
+    "description": "",
+    "license": "MIT",
+    "author": "BEAUVILLE Mathis",
+    "main": "index.js",
+    "scripts": {
+        "build": "tsc && copyfiles -f ./src/config/convict.json ./src/config/configuration.json ./dist/src/config/ && copyfiles -f ./src/public/csv/template.csv ./dist/src/public/csv/",
+        "docker": "npm run start:docker",
+        "migrate": "prisma migrate dev",
+        "start:dev": "nodemon --exec \"ts-node\" src/index.ts",
+        "start:docker": "node ./dist/src/index.js --port 3000",
+        "test": "jest",
+        "test:dev": "jest --watch --verbose",
+        "studio": "prisma studio"
+    },
+    "dependencies": {
+        "@prisma/client": "^5.20.0",
+        "@types/cors": "^2.8.13",
+        "convict": "^6.2.4",
+        "copyfiles": "^2.4.1",
+        "cors": "^2.8.5",
+        "express": "^4.17.2",
+        "glob": "^7.2.0",
+        "jsonwebtoken": "^9.0.0",
+        "morgan": "^1.10.0"
+    },
+    "devDependencies": {
+        "@types/body-parser": "^1.19.2",
+        "@types/convict": "^4.2.1",
+        "@types/express": "^4.17.6",
+        "@types/glob": "^7.2.0",
+        "@types/jest": "^29.5.6",
+        "@types/jsonwebtoken": "^9.0.2",
+        "@types/morgan": "^1.9.3",
+        "@types/node": "^16.18.111",
+        "@types/supertest": "^2.0.11",
+        "@types/uuid": "^8.3.4",
+        "jest": "^29.7.0",
+        "nodemon": "^2.0.15",
+        "prisma": "^5.20.0",
+        "supertest": "^6.2.2",
+        "ts-jest": "^29.1.1",
+        "ts-node": "^10.9.2",
+        "typescript": "^4.9.5"
+    }
+}

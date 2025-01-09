@@ -30,13 +30,12 @@ enum Role {
 }
 
 model Availability {
-  id          Int      @id @default(autoincrement())
-  memberId    String    // Référence à l'utilisateur
+  id          String      @id @default(cuid())
+  memberId    String   // Référence à l'utilisateur
   day         String   // Jour (ex : "Monday", "Tuesday")
   startTime   String   // Heure de début au format HH:mm
-  endTime     String   // Heure de fin au format HH:mm
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  member      User     @relation(fields: [memberId], references: [id]) // Relation avec les membres
+  endTime     String  // Heure de fin au format HH:mm
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @updatedAt
+  member      User?     @relation(fields: [memberId], references: [id]) // Relation avec les membres
 }

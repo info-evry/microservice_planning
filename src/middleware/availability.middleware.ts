@@ -1,30 +1,67 @@
 import { Request, Response } from "express";
 import { serverInstance } from "../server";
-
+import { ZodError } from "zod";
+import { availibilitySchema } from "../schema/create/availibilitySchema";
 export class AvailabilityMiddleware {
-    public static healthcheck(req: Request, res: Response) {
-        res.status(200).send("OK");
-    }
-
     public static async createAvailability(req: Request, res: Response) {
         try {
-            const { memberId, day, startTime, endTime } = req.body;
-            const availability = await serverInstance.getPrismaClient().availability.create({
-                data: { memberId, day, startTime, endTime },
+            const { memberId, day, startTime, endTime } = availibilitySchema.parse(req.body);
+
+            const user = await serverInstance.getPrismaClient().user.findUnique({
+                where: { id: memberId.toString() },
             });
-            res.status(201).json(availability);
+
+            if (!user) {
+                return res.status(404).json({
+                    message: `User with id ${memberId} not found`,
+                });
+            }
+
+            const availability = await serverInstance.getPrismaClient().availability.create({
+                data: {
+                    memberId: memberId.toString(),
+                    day: day as string,
+                    startTime: startTime as string,
+                    endTime: endTime as string,
+                },
+            });
+
+            // Envoi de la réponse
+            res.status(201).json({ message: "Dispo créer", details: availability });
         } catch (error) {
-            res.status(500).send("Error creating availability: ${error}");
+            console.log(error);
+            if (error instanceof ZodError) {
+                return res.json({
+                    status: 400,
+                    message: "Zod Error",
+                    detail: error.issues.reduce((acc, curr) => acc + curr.message + "\n", ""),
+                    more: error.issues.reduce((acc, curr) => acc + curr.path.join("->") + " ", ""),
+                });
+            }
+            // Erreur générique
+            res.status(500).send({
+                message: "Internal Server Error",
+                error: error.message,
+            });
         }
     }
 
     public static async deleteAvailability(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            await serverInstance.getPrismaClient().availability.delete({
-                where: { id: Number(id) },
+            //check if the availability exists id
+            const availability = await serverInstance.getPrismaClient().availability.findUnique({
+                where: { id },
             });
-            res.status(204).send();
+            if (!availability) {
+                return res.status(404).json({
+                    message: `Availability with id ${id} not found`,
+                });
+            }
+            await serverInstance.getPrismaClient().availability.delete({
+                where: { id },
+            });
+            res.status(200).json({ message: "Dispo supprimée", id });
         } catch (error) {
             res.status(500).send("Error deleting availability: ${error}");
         }

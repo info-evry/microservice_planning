@@ -11,20 +11,25 @@
         "migrate": "prisma migrate dev",
         "start:dev": "nodemon --exec \"ts-node\" src/index.ts",
         "start:docker": "node ./dist/src/index.js --port 3000",
+        "seed": "prisma db seed",
         "test": "jest",
         "test:dev": "jest --watch --verbose",
         "studio": "prisma studio"
     },
     "dependencies": {
+        "@faker-js/faker": "^9.3.0",
         "@prisma/client": "^5.20.0",
         "@types/cors": "^2.8.13",
         "convict": "^6.2.4",
         "copyfiles": "^2.4.1",
         "cors": "^2.8.5",
         "express": "^4.17.2",
+        "faker": "^6.6.6",
+        "faker-js": "^1.0.0",
         "glob": "^7.2.0",
         "jsonwebtoken": "^9.0.0",
-        "morgan": "^1.10.0"
+        "morgan": "^1.10.0",
+        "zod": "^3.24.1"
     },
     "devDependencies": {
         "@types/body-parser": "^1.19.2",
@@ -44,5 +49,8 @@
         "ts-jest": "^29.1.1",
         "ts-node": "^10.9.2",
         "typescript": "^4.9.5"
+    },
+    "prisma": {
+        "seed": "ts-node prisma/seed.ts"
     }
 }

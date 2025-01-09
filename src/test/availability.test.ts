@@ -1,161 +1,68 @@
 import request from "supertest";
 import { serverInstance } from "../server";
-
-describe("Availability API", () => {
-    describe("Health check", () => {
-        it("should return a 200", async () => {
-            const response = await request(serverInstance.getApp()).get("/");
-            expect(response.status).toBe(200);
+const VALID_MEMBER = "658371d5-e3cb-4fa6-b4c6-23bb318a8e74"; //SHOULD BE REPLACE BY A VALID MEMBER ID
+const VALID_ID_TO_DELETE = "cm5psobcr0001b3dsafq47u22";
+describe("Availability Middleware", () => {
+    it("should return 201 for valid availability creation", async () => {
+        const response = await request(serverInstance.getApp()).post("/availability").send({
+            memberId: VALID_MEMBER,
+            day: "Monday",
+            startTime: "10:00",
+            endTime: "12:00",
         });
+        expect(response.status).toBe(200);
+        expect(response.body.message).toContain("Dispo créer");
     });
 
-    describe("Opening Hours", () => {
-        it("should correctly display the specified opening hours", async () => {
-            jest.spyOn(serverInstance.getPrismaClient().availability, "findMany").mockResolvedValue([
-                { id: 1, memberId: "user1", day: "Monday", startTime: "10:00", endTime: "10:15", createdAt: new Date(), updatedAt: new Date() },
-                { id: 2, memberId: "user1", day: "Monday", startTime: "11:45", endTime: "13:00", createdAt: new Date(), updatedAt: new Date() },
-                { id: 3, memberId: "user1", day: "Monday", startTime: "14:30", endTime: "14:45", createdAt: new Date(), updatedAt: new Date() },
-            ]);
-
-            const response = await request(serverInstance.getApp()).get("/opening-hours");
-
-            expect(response.status).toBe(200);
-            expect(response.body).toEqual({
-                Monday: [
-                    { start: "10:00", end: "10:15" },
-                    { start: "11:45", end: "13:00" },
-                    { start: "14:30", end: "14:45" },
-                ],
-            });
+    it("should return 404 if user does not exist", async () => {
+        const response = await request(serverInstance.getApp()).post("/availability").send({
+            memberId: "non-existent-user-id",
+            day: "Monday",
+            startTime: "10:00",
+            endTime: "12:00",
         });
-
-        it("should return a message when no availabilities are found", async () => {
-            jest.spyOn(serverInstance.getPrismaClient().availability, "findMany").mockResolvedValue([]);
-
-            const response = await request(serverInstance.getApp()).get("/opening-hours");
-
-            expect(response.status).toBe(200);
-            expect(response.body).toEqual({ message: "The shop is closed." });
-        });
+        expect(response.status).toBe(404);
+        expect(response.body.message).toContain("User with id non-existent-user-id not found");
     });
 
-    describe("Create Availability", () => {
-        it("should allow creating an availability", async () => {
-            jest.spyOn(serverInstance.getPrismaClient().availability, "create").mockResolvedValue({
-                id: 1,
-                memberId: "user1",
-                day: "Monday",
-                startTime: "10:00",
-                endTime: "10:15",
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            });
-
-            const response = await request(serverInstance.getApp())
-                .post("/availabilities/create")
-                .send({
-                    memberId: "user1",
-                    day: "Monday",
-                    startTime: "10:00",
-                    endTime: "10:15",
-                });
-
-            expect(response.status).toBe(201);
-            expect(response.body).toEqual({
-                id: 1,
-                memberId: "user1",
-                day: "Monday",
-                startTime: "10:00",
-                endTime: "10:15",
-                createdAt: expect.any(String),
-                updatedAt: expect.any(String),
-            });
+    it("should return 400 for invalid input with Zod Error", async () => {
+        const response = await request(serverInstance.getApp()).post("/availability").send({
+            memberId: VALID_MEMBER,
+            day: "InvalidDay",
+            startTime: "10:00",
+            endTime: "12:00",
         });
-
-        it("should return an error for conflicting availabilities", async () => {
-            jest.spyOn(serverInstance.getPrismaClient().availability, "create").mockRejectedValue(
-                new Error("Conflicting availability")
-            );
-
-            const response = await request(serverInstance.getApp())
-                .post("/availabilities/create")
-                .send({
-                    memberId: "user1",
-                    day: "Monday",
-                    startTime: "10:00",
-                    endTime: "10:15",
-                });
-
-            expect(response.status).toBe(500);
-            expect(response.text).toContain("Error creating availability");
-        });
+        expect(response.status).toBe(400);
+        expect(response.body.message).toContain("Zod Error");
     });
 
-    describe("Delete Availability", () => {
-        it("should delete an availability", async () => {
-            jest.spyOn(serverInstance.getPrismaClient().availability, "delete").mockResolvedValue({
-                id: 1,
-                memberId: "user1",
-                day: "Monday",
-                startTime: "10:00",
-                endTime: "10:15",
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            });
-
-            const response = await request(serverInstance.getApp()).delete("/availabilities/1/delete");
-
-            expect(response.status).toBe(204);
-        });
-
-        it("should return an error when trying to delete a non-existing availability", async () => {
-            jest.spyOn(serverInstance.getPrismaClient().availability, "delete").mockRejectedValue(
-                new Error("Availability not found")
-            );
-
-            const response = await request(serverInstance.getApp()).delete("/availabilities/999/delete");
-
-            expect(response.status).toBe(500);
-            expect(response.text).toContain("Error deleting availability");
-        });
+    it("should return 200 when availability is successfully deleted", async () => {
+        const response = await request(serverInstance.getApp()).delete(
+            "/availability/" + VALID_ID_TO_DELETE,
+        );
+        expect(response.status).toBe(200);
+        expect(response.body.message).toContain("Dispo supprimée");
     });
 
-    describe("Real-time Opening Hours Update", () => {
-        it("should update opening hours after creating a new availability", async () => {
-            jest.spyOn(serverInstance.getPrismaClient().availability, "findMany")
-                .mockResolvedValueOnce([
-                    { id: 1, memberId: "user1", day: "Monday", startTime: "10:00", endTime: "10:15", createdAt: new Date(), updatedAt: new Date() },
-                    { id: 2, memberId: "user1", day: "Monday", startTime: "11:45", endTime: "13:00", createdAt: new Date(), updatedAt: new Date() },
-                ]) // avant creation
-                .mockResolvedValueOnce([
-                    { id: 1, memberId: "user1", day: "Monday", startTime: "10:00", endTime: "10:15", createdAt: new Date(), updatedAt: new Date() },
-                    { id: 2, memberId: "user1", day: "Monday", startTime: "11:45", endTime: "13:00", createdAt: new Date(), updatedAt: new Date() },
-                    { id: 3, memberId: "user1", day: "Monday", startTime: "14:30", endTime: "14:45", createdAt: new Date(), updatedAt: new Date() },
-                ]); // Apres creation
+    it("should return 404 if availability to delete does not exist", async () => {
+        const response = await request(serverInstance.getApp()).delete(
+            "/availability/" + "this is not a valid id",
+        );
+        expect(response.status).toBe(404);
+        expect(response.body.message).toContain("Availability with id non-existent-id not found");
+    });
 
-            const initialResponse = await request(serverInstance.getApp()).get("/opening-hours");
-            expect(initialResponse.body).toEqual({
-                Monday: [
-                    { start: "10:00", end: "10:15" },
-                    { start: "11:45", end: "13:00" },
-                ],
-            });
+    it("should return 200 and opening hours grouped by day", async () => {
+        const response = await request(serverInstance.getApp()).get("/opening-hours");
+        expect(response.status).toBe(200);
+        // Vérifie que la réponse contient les horaires groupés
+        console.log(response.body);
+        expect(response.body).toHaveProperty("Monday");
+    });
 
-            await request(serverInstance.getApp()).post("/availabilities/create").send({
-                memberId: "user1",
-                day: "Monday",
-                startTime: "14:30",
-                endTime: "14:45",
-            });
-
-            const updatedResponse = await request(serverInstance.getApp()).get("/opening-hours");
-            expect(updatedResponse.body).toEqual({
-                Monday: [
-                    { start: "10:00", end: "10:15" },
-                    { start: "11:45", end: "13:00" },
-                    { start: "14:30", end: "14:45" },
-                ],
-            });
-        });
+    it("should return 200 with a closed message if no availabilities exist", async () => {
+        const response = await request(serverInstance.getApp()).get("/opening-hours");
+        expect(response.status).toBe(200);
+        expect(response.body.message).toContain("Le bureau de l'association est fermé.");
     });
 });

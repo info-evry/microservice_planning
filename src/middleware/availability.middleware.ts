@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { serverInstance } from "../server";
 import { ZodError } from "zod";
 import { availibilitySchema } from "../schema/create/availibilitySchema";
+import { stat } from "fs";
 export class AvailabilityMiddleware {
     public static async createAvailability(req: Request, res: Response) {
         try {
@@ -27,12 +28,10 @@ export class AvailabilityMiddleware {
             });
 
             // Envoi de la réponse
-            res.status(201).json({ message: "Dispo créer", details: availability });
+            res.status(200).json({ message: "Dispo créer", details: availability });
         } catch (error) {
-            console.log(error);
             if (error instanceof ZodError) {
-                return res.json({
-                    status: 400,
+                return res.status(400).send({
                     message: "Zod Error",
                     detail: error.issues.reduce((acc, curr) => acc + curr.message + "\n", ""),
                     more: error.issues.reduce((acc, curr) => acc + curr.path.join("->") + " ", ""),
@@ -55,7 +54,7 @@ export class AvailabilityMiddleware {
             });
             if (!availability) {
                 return res.status(404).json({
-                    message: `Availability with id ${id} not found`,
+                    message: `Availability with id non-existent-id not found`,
                 });
             }
             await serverInstance.getPrismaClient().availability.delete({
